@@ -1,8 +1,11 @@
 import 'package:bakery/screens/authentication/forgot_password/forgot_password_otp_screen.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter/material.dart';
-import '../../../home_screens/home_screen.dart';
+import '../auth_check_screen.dart';
 import '../signup/signup_screen.dart';
 import '/widget/app_bar.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -16,13 +19,92 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _password = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   bool _visiblePassword = false;
-
+  bool _isLoading = false;
+  final String _loginEndpoint = 'https://api.abtinfi.ir/users/login';
+  final _storage = const FlutterSecureStorage();
   @override
   void dispose() {
     // TODO: implement dispose
     super.dispose();
     _email.dispose();
     _password.dispose();
+  }
+
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder:
+          (ctx) => AlertDialog(
+            title: const Text('Error'),
+            content: Text(message),
+            actions: <Widget>[
+              TextButton(
+                child: const Text('Okay'),
+                onPressed: () {
+                  Navigator.of(ctx).pop();
+                },
+              ),
+            ],
+          ),
+    );
+  }
+
+  Future<void> _performLogin() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final Map<String, String> requestBody = {
+        'email': _email.text,
+        'password': _password.text,
+      };
+
+      final response = await http.post(
+        Uri.parse(_loginEndpoint),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(requestBody),
+      );
+      if (!mounted) return;
+
+      if (response.statusCode == 200) {
+        final responseBody = jsonDecode(response.body);
+
+        final String? accessToken = responseBody['access_token'];
+        final String? tokenType = responseBody['token_type'];
+
+        if (accessToken != null && tokenType != null) {
+          await _storage.write(key: 'jwt_token', value: accessToken);
+          if (!mounted) return;
+
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (context) => const AuthCheckScreen()),
+          );
+        } else {
+          _showErrorDialog(
+            'Login failed: Invalid response format from server.',
+          );
+        }
+      } else if (response.statusCode == 401 || response.statusCode == 404) {
+        final errorBody = jsonDecode(response.body);
+        _showErrorDialog(errorBody['message'] ?? 'Invalid email or password.');
+      } else {
+        _showErrorDialog('Login failed. Status code: ${response.statusCode}');
+      }
+    } catch (e) {
+      if (!mounted) return;
+      _showErrorDialog(
+        'An error occurred. Please check your connection and try again.',
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -102,34 +184,37 @@ class _LoginScreenState extends State<LoginScreen> {
                       onPressed: () {
                         Navigator.of(context).push(
                           MaterialPageRoute(
-                            builder: (context) => ForgotPasswordOTPScreen(),
+                            builder:
+                                (context) =>
+                                    const ForgotPasswordEnterEmailScreen(),
                           ),
                         );
                       },
-                      child: Text('Forgot Password?'),
+                      child: const Text('Forgot Password?'), // Added const
                     ),
                   ),
                   ElevatedButton(
-                    onPressed: () {
-                      if (_formKey.currentState!.validate()) {
-                        String email = _email.text;
-                        String password = _password.text;
-                        Navigator.of(context).push(
-                          MaterialPageRoute(builder: (context) => HomeScreen()),
-                        );
-                      }
-                    },
-                    child: Text('Login'),
+                    onPressed: _isLoading ? null : _performLogin,
+                    child:
+                        _isLoading
+                            ? const CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            )
+                            : const Text('Login'),
                   ),
                   TextButton(
                     onPressed: () {
                       Navigator.of(context).push(
                         MaterialPageRoute(
-                          builder: (context) => const SignupScreen(),
+                          builder:
+                              (context) => const SignupScreen(), // Added const
                         ),
                       );
                     },
-                    child: Text('Don’t have an account? Sign up'),
+                    child: const Text(
+                      'Don’t have an account? Sign up',
+                    ), // Added const
                   ),
                 ],
               ),
