@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+
 import '../../home_screens/home_screen.dart';
 import 'login/login_screen.dart';
 import '../../providers/user_provider.dart';
 import '../../models/user_model.dart';
+import '../../services/auth_service.dart';
 
 class AuthCheckScreen extends StatefulWidget {
   const AuthCheckScreen({super.key});
@@ -17,79 +16,53 @@ class AuthCheckScreen extends StatefulWidget {
 }
 
 class _AuthCheckScreenState extends State<AuthCheckScreen> {
-  final _storage = const FlutterSecureStorage();
-  final String _meEndpoint = 'https://api.abtinfi.ir/users/me';
-
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _checkAuthStatus();
-    });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkAuthStatus());
   }
 
   Future<void> _checkAuthStatus() async {
     final userProvider = Provider.of<UserProvider>(context, listen: false);
     final prefs = await SharedPreferences.getInstance();
-
-    final String? token = await _storage.read(key: 'jwt_token');
+    final token = await AuthService.getToken();
 
     if (token == null) {
-      _navigateToLogin();
-      return;
+      return _navigateToLogin();
     }
 
     try {
-      final response = await http.get(
-        Uri.parse(_meEndpoint),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        final responseBody = jsonDecode(response.body);
-        final user = UserModel.fromJson(responseBody);
-
-        userProvider.setUser(user);
-        await prefs.setString('user_data', jsonEncode(user.toJson()));
-
-        _navigateToHome();
-      } else if (response.statusCode == 401) {
-        await _storage.delete(key: 'jwt_token');
-        await prefs.remove('user_data');
-
-        userProvider.clearUser();
-        _navigateToLogin();
-      } else {
-        await _storage.delete(key: 'jwt_token');
-        await prefs.remove('user_data');
-        userProvider.clearUser();
-        _navigateToLogin();
-      }
-    } catch (e) {
-      await _storage.delete(key: 'jwt_token');
-      await prefs.remove('user_data');
+      final user = await AuthService.fetchUser(token);
+      userProvider.setUser(user!);
+      await prefs.setString('user_data', user.toJsonString());
+      _navigateToHome();
+    } on AuthException catch (_) {
+      await AuthService.clearAuthData();
+      userProvider.clearUser();
+      _navigateToLogin();
+    } catch (_) {
+      await AuthService.clearAuthData();
       userProvider.clearUser();
       _navigateToLogin();
     }
   }
 
   void _navigateToHome() {
-    Navigator.of(
-      context,
-    ).pushReplacement(MaterialPageRoute(builder: (context) => HomeScreen()));
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (_) => HomeScreen()),
+    );
   }
 
   void _navigateToLogin() {
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (context) => const LoginScreen()),
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    return const Scaffold(
+      body: Center(child: CircularProgressIndicator()),
+    );
   }
 }
