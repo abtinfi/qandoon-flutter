@@ -141,6 +141,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       if (value == null || value.isEmpty) {
                         return "Email can't be empty";
                       }
+                      if (value.length > 254) {
+                        return "Email address is too long";
+                      }
                       final emailRegex = RegExp(
                         r'^[\w-\\.]+@([\w-]+\.)+[\w-]{2,4}$',
                       );
