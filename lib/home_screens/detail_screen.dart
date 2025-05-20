@@ -4,6 +4,42 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../models/pastry_model.dart';
 import '../providers/cart_provider.dart';
 
+class FullScreenImageView extends StatelessWidget {
+  final String imageUrl;
+
+  const FullScreenImageView({super.key, required this.imageUrl});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
+      body: InteractiveViewer(
+        minScale: 0.5,
+        maxScale: 4.0,
+        child: Center(
+          child: CachedNetworkImage(
+            imageUrl: imageUrl,
+            fit: BoxFit.contain,
+            placeholder: (context, url) => const Center(
+              child: CircularProgressIndicator(color: Colors.white),
+            ),
+            errorWidget: (context, url, error) => Container(
+              color: Colors.grey.shade200,
+              child: const Center(
+                child: Icon(Icons.broken_image, size: 60, color: Colors.grey),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class PastryDetailScreen extends StatefulWidget {
   final Pastry pastry;
 
@@ -29,22 +65,34 @@ class _PastryDetailScreenState extends State<PastryDetailScreen> {
           children: [
             Hero(
               tag: pastry.imageUrl,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: SizedBox(
-                  height: 250,
-                  child: CachedNetworkImage(
-                    imageUrl: pastry.imageUrl,
-                    fit: BoxFit.cover,
-                    width: double.infinity,
-                    placeholder: (context, url) => const Center(
-                      child: CircularProgressIndicator(),
+              child: GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => FullScreenImageView(
+                        imageUrl: pastry.imageUrl,
+                      ),
                     ),
-                    errorWidget: (context, url, error) => Container(
-                      color: Colors.grey.shade200,
-                      height: 250,
-                      child: const Center(
-                        child: Icon(Icons.broken_image, size: 60, color: Colors.grey),
+                  );
+                },
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: SizedBox(
+                    height: 250,
+                    child: CachedNetworkImage(
+                      imageUrl: pastry.imageUrl,
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      placeholder: (context, url) => const Center(
+                        child: CircularProgressIndicator(),
+                      ),
+                      errorWidget: (context, url, error) => Container(
+                        color: Colors.grey.shade200,
+                        height: 250,
+                        child: const Center(
+                          child: Icon(Icons.broken_image, size: 60, color: Colors.grey),
+                        ),
                       ),
                     ),
                   ),
