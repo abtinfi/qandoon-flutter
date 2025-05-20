@@ -3,19 +3,19 @@ import '../models/pastry_model.dart';
 import '../models/order_model.dart';
 
 class CartProvider with ChangeNotifier {
-  final Map<int, OrderItem> _items = {}; // key: pastryId
+  final Map<int, CartItem> _items = {}; // key: pastryId
 
-  Map<int, OrderItem> get items => _items;
+  Map<int, CartItem> get items => _items;
 
   void addToCart(Pastry pastry, int quantity) {
     if (_items.containsKey(pastry.id)) {
-      _items[pastry.id] = OrderItem(
-        pastryId: pastry.id,
+      _items[pastry.id] = CartItem(
+        pastry: pastry,
         quantity: _items[pastry.id]!.quantity + quantity,
       );
     } else {
-      _items[pastry.id] = OrderItem(
-        pastryId: pastry.id,
+      _items[pastry.id] = CartItem(
+        pastry: pastry,
         quantity: quantity,
       );
     }
@@ -29,7 +29,10 @@ class CartProvider with ChangeNotifier {
 
   void updateQuantity(int pastryId, int quantity) {
     if (_items.containsKey(pastryId)) {
-      _items[pastryId] = OrderItem(pastryId: pastryId, quantity: quantity);
+      _items[pastryId] = CartItem(
+        pastry: _items[pastryId]!.pastry,
+        quantity: quantity,
+      );
       notifyListeners();
     }
   }
@@ -40,8 +43,21 @@ class CartProvider with ChangeNotifier {
   }
 
   List<OrderItem> getOrderItems() {
-    return _items.values.toList();
+    return _items.values.map((item) => OrderItem(
+      pastryId: item.pastry.id,
+      quantity: item.quantity,
+    )).toList();
   }
 
   int get totalItems => _items.values.fold(0, (sum, item) => sum + item.quantity);
+}
+
+class CartItem {
+  final Pastry pastry;
+  final int quantity;
+
+  CartItem({
+    required this.pastry,
+    required this.quantity,
+  });
 }

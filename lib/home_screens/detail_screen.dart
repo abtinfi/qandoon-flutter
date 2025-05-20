@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../models/pastry_model.dart';
 import '../providers/cart_provider.dart';
 
@@ -32,23 +33,20 @@ class _PastryDetailScreenState extends State<PastryDetailScreen> {
                 borderRadius: BorderRadius.circular(16),
                 child: SizedBox(
                   height: 250,
-                  child: Image.network(
-                    pastry.imageUrl,
+                  child: CachedNetworkImage(
+                    imageUrl: pastry.imageUrl,
                     fit: BoxFit.cover,
                     width: double.infinity,
-                    loadingBuilder: (context, child, loadingProgress) {
-                      if (loadingProgress == null) return child;
-                      return const Center(child: CircularProgressIndicator());
-                    },
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        color: Colors.grey.shade200,
-                        height: 250,
-                        child: const Center(
-                          child: Icon(Icons.broken_image, size: 60, color: Colors.grey),
-                        ),
-                      );
-                    },
+                    placeholder: (context, url) => const Center(
+                      child: CircularProgressIndicator(),
+                    ),
+                    errorWidget: (context, url, error) => Container(
+                      color: Colors.grey.shade200,
+                      height: 250,
+                      child: const Center(
+                        child: Icon(Icons.broken_image, size: 60, color: Colors.grey),
+                      ),
+                    ),
                   ),
                 ),
               ),

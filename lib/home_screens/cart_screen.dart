@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../providers/cart_provider.dart';
 import '../models/order_model.dart';
 import '../services/auth_service.dart';
@@ -120,12 +121,53 @@ class _CartScreenState extends State<CartScreen> {
                   itemCount: cart.items.length,
                   itemBuilder: (context, index) {
                     final item = cart.items.values.toList()[index];
-                    return ListTile(
-                      title: Text('شیرینی #${item.pastryId}'),
-                      subtitle: Text('تعداد: ${item.quantity}'),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.delete),
-                        onPressed: () => cart.removeFromCart(item.pastryId),
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      child: ListTile(
+                        leading: ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: CachedNetworkImage(
+                            imageUrl: item.pastry.imageUrl,
+                            width: 60,
+                            height: 60,
+                            fit: BoxFit.cover,
+                            placeholder: (context, url) => const Center(
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                            errorWidget: (context, url, error) => const Icon(
+                              Icons.broken_image,
+                              size: 40,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ),
+                        title: Text(
+                          item.pastry.name,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                        subtitle: Text(
+                          'قیمت: ${item.pastry.price.toStringAsFixed(0)} تومان',
+                          style: const TextStyle(color: Colors.green),
+                        ),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              '${item.quantity} عدد',
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.delete, color: Colors.red),
+                              onPressed: () => cart.removeFromCart(item.pastry.id),
+                            ),
+                          ],
+                        ),
                       ),
                     );
                   },

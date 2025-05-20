@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../models/pastry_model.dart';
 import '../services/pastry_service.dart';
 import 'detail_screen.dart';
@@ -73,17 +74,17 @@ class _ShopScreenState extends State<ShopScreen> {
                               child: SizedBox(
                                 width: 80,
                                 height: 80,
-                                child: Image.network(
-                                  pastry.imageUrl,
+                                child: CachedNetworkImage(
+                                  imageUrl: pastry.imageUrl,
                                   fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) =>
-                                  const Icon(Icons.broken_image, size: 40),
-                                  loadingBuilder: (context, child, loadingProgress) {
-                                    if (loadingProgress == null) return child;
-                                    return const Center(
-                                      child: CircularProgressIndicator(strokeWidth: 2),
-                                    );
-                                  },
+                                  placeholder: (context, url) => const Center(
+                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                  ),
+                                  errorWidget: (context, url, error) => const Icon(
+                                    Icons.broken_image,
+                                    size: 40,
+                                    color: Colors.grey,
+                                  ),
                                 ),
                               ),
                             ),
