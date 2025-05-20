@@ -5,7 +5,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../home_screens/home_screen.dart';
 import 'login/login_screen.dart';
 import '../../providers/user_provider.dart';
-import '../../models/user_model.dart';
 import '../../services/auth_service.dart';
 
 class AuthCheckScreen extends StatefulWidget {

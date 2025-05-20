@@ -33,56 +33,110 @@ class _ShopScreenState extends State<ShopScreen> {
           }
 
           final pastries = snapshot.data!;
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: pastries.length,
-            itemBuilder: (context, index) {
-              final pastry = pastries[index];
-              return Card(
-                margin: const EdgeInsets.only(bottom: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                child: InkWell(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => PastryDetailScreen(pastry: pastry),
-                      ),
-                    );
-                  },
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.all(16),
-                    leading: Hero(
-                      tag: pastry.imageUrl,
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: SizedBox(
-                          width: 60,
-                          height: 60,
-                          child: Image.network(
-                            pastry.imageUrl,
-                            fit: BoxFit.cover,
-                            loadingBuilder: (context, child, loadingProgress) {
-                              if (loadingProgress == null) return child;
-                              return const Center(child: CircularProgressIndicator(strokeWidth: 2));
-                            },
-                            errorBuilder: (context, error, stackTrace) {
-                              return const Icon(Icons.broken_image, size: 40, color: Colors.grey);
-                            },
-                          ),
+
+          return RefreshIndicator(
+            onRefresh: () async {
+              setState(() {
+                _pastriesFuture = PastryService.fetchPastries();
+              });
+              await _pastriesFuture;
+            },
+            child: ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: pastries.length,
+              itemBuilder: (context, index) {
+                final pastry = pastries[index];
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  elevation: 4,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(16),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => PastryDetailScreen(pastry: pastry),
                         ),
+                      );
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Row(
+                        children: [
+                          Hero(
+                            tag: pastry.imageUrl,
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: SizedBox(
+                                width: 80,
+                                height: 80,
+                                child: Image.network(
+                                  pastry.imageUrl,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) =>
+                                  const Icon(Icons.broken_image, size: 40),
+                                  loadingBuilder: (context, child, loadingProgress) {
+                                    if (loadingProgress == null) return child;
+                                    return const Center(
+                                      child: CircularProgressIndicator(strokeWidth: 2),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  pastry.name,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  pastry.description,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(color: Colors.grey),
+                                ),
+                                const SizedBox(height: 4),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      'موجودی: ${pastry.stock}',
+                                      style: const TextStyle(color: Colors.orange, fontSize: 13),
+                                    ),
+                                    Text(
+                                      '${pastry.price.toStringAsFixed(0)} تومان',
+                                      style: const TextStyle(
+                                        fontSize: 15,
+                                        color: Colors.green,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                )
+
+                              ],
+                            ),
+                          ),
+                          const Icon(Icons.arrow_forward_ios_rounded, size: 16, color: Colors.grey),
+                        ],
                       ),
-                    ),
-                    title: Text(pastry.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                    subtitle: Text(pastry.description, maxLines: 2, overflow: TextOverflow.ellipsis),
-                    trailing: Text(
-                      '${pastry.price.toStringAsFixed(0)} تومان',
-                      style: const TextStyle(fontSize: 16, color: Colors.green),
                     ),
                   ),
-                ),
-              );
-            },
+                );
+              },
+            ),
           );
         },
       ),
