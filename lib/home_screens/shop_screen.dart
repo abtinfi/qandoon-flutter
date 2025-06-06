@@ -1,5 +1,4 @@
 import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -61,7 +60,7 @@ class _ShopScreenState extends State<ShopScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('فروشگاه')),
+      appBar: AppBar(title: const Text('Shop')),
       body: FutureBuilder<List<Pastry>>(
         future: _pastriesFuture,
         builder: (context, snapshot) {
@@ -70,13 +69,13 @@ class _ShopScreenState extends State<ShopScreen> {
           }
 
           if (snapshot.hasError) {
-            return Center(child: Text('خطا: ${snapshot.error}'));
+            return Center(child: Text('Error: ${snapshot.error}'));
           }
 
           final pastries = snapshot.data ?? [];
 
           if (pastries.isEmpty) {
-            return const Center(child: Text('هیچ محصولی وجود ندارد.'));
+            return const Center(child: Text('No products available.'));
           }
 
           return RefreshIndicator(
@@ -84,10 +83,7 @@ class _ShopScreenState extends State<ShopScreen> {
             child: ListView.builder(
               padding: const EdgeInsets.all(16),
               itemCount: pastries.length,
-              itemBuilder: (context, index) {
-                final pastry = pastries[index];
-                return _buildPastryCard(pastry, context);
-              },
+              itemBuilder: (_, index) => _buildPastryCard(pastries[index]),
             ),
           );
         },
@@ -109,7 +105,7 @@ class _ShopScreenState extends State<ShopScreen> {
     );
   }
 
-  Widget _buildPastryCard(Pastry pastry, BuildContext context) {
+  Widget _buildPastryCard(Pastry pastry) {
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       elevation: 4,
@@ -137,9 +133,11 @@ class _ShopScreenState extends State<ShopScreen> {
                     width: 80,
                     height: 80,
                     fit: BoxFit.cover,
-                    placeholder: (context, url) =>
-                    const Center(child: CircularProgressIndicator(strokeWidth: 2)),
-                    errorWidget: (context, url, error) => const Icon(Icons.broken_image, size: 40),
+                    placeholder: (_, __) => const Center(
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                    errorWidget: (_, __, ___) =>
+                    const Icon(Icons.broken_image, size: 40),
                   ),
                 ),
               ),
@@ -150,7 +148,8 @@ class _ShopScreenState extends State<ShopScreen> {
                   children: [
                     Text(
                       pastry.name,
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 16),
                     ),
                     const SizedBox(height: 4),
                     Text(
@@ -163,10 +162,13 @@ class _ShopScreenState extends State<ShopScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('موجودی: ${pastry.stock}',
-                            style: const TextStyle(color: Colors.orange, fontSize: 13)),
                         Text(
-                          '${pastry.price.toStringAsFixed(0)} تومان',
+                          'Stock: ${pastry.stock}',
+                          style:
+                          const TextStyle(color: Colors.orange, fontSize: 13),
+                        ),
+                        Text(
+                          '${pastry.price.toStringAsFixed(0)} Toman',
                           style: const TextStyle(
                             fontSize: 15,
                             color: Colors.green,
@@ -174,11 +176,12 @@ class _ShopScreenState extends State<ShopScreen> {
                           ),
                         ),
                       ],
-                    )
+                    ),
                   ],
                 ),
               ),
-              const Icon(Icons.arrow_forward_ios_rounded, size: 16, color: Colors.grey),
+              const Icon(Icons.arrow_forward_ios_rounded,
+                  size: 16, color: Colors.grey),
             ],
           ),
         ),
