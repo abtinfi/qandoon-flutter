@@ -8,6 +8,13 @@ class OrderItem {
     'pastry_id': pastryId,
     'quantity': quantity,
   };
+
+  factory OrderItem.fromJson(Map<String, dynamic> json) {
+    return OrderItem(
+      pastryId: json['pastry_id'],
+      quantity: json['quantity'],
+    );
+  }
 }
 
 class OrderCreateModel {
@@ -35,6 +42,7 @@ class OrderModel {
   final String status;
   final String? adminMessage;
   final DateTime createdAt;
+  final List<OrderItem> items;
 
   OrderModel({
     required this.id,
@@ -43,6 +51,7 @@ class OrderModel {
     required this.status,
     this.adminMessage,
     required this.createdAt,
+    required this.items,
   });
 
   factory OrderModel.fromJson(Map<String, dynamic> json) {
@@ -53,6 +62,9 @@ class OrderModel {
       status: json['status'],
       adminMessage: json['admin_message'],
       createdAt: DateTime.parse(json['created_at']),
+      items: (json['items'] as List)
+          .map((item) => OrderItem.fromJson(item))
+          .toList(),
     );
   }
 }

@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import 'themes/theme_controller.dart';
 import 'app.dart';
 import 'providers/user_provider.dart';
-import 'package:provider/provider.dart';
 import 'providers/cart_provider.dart';
 
 void main() {

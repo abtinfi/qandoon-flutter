@@ -1,4 +1,3 @@
-// providers/user_provider.dart
 import 'package:flutter/material.dart';
 import '../models/user_model.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -22,23 +21,29 @@ class UserProvider with ChangeNotifier {
   }
 
   Future<void> logout() async {
-    final _storage = const FlutterSecureStorage();
-    try {
-      await _storage.delete(key: 'jwt_token');
-    } catch (e) {
-      print('Error deleting JWT token: $e');
-    }
+    await _clearSecureStorage();
+    await _clearPreferences();
+    clearUser();
+    debugPrint('User logged out and all cached data cleared.');
+  }
 
+  Future<void> _clearSecureStorage() async {
+    const storage = FlutterSecureStorage();
+    try {
+      await storage.deleteAll();
+      debugPrint('Secure storage cleared.');
+    } catch (e) {
+      debugPrint('Error clearing secure storage: $e');
+    }
+  }
+
+  Future<void> _clearPreferences() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.remove('user_data');
-      print('User data deleted from SharedPreferences successfully.');
+      await prefs.clear();
+      debugPrint('Shared preferences cleared.');
     } catch (e) {
-      print('Error deleting user data from SharedPreferences: $e');
+      debugPrint('Error clearing preferences: $e');
     }
-
-    clearUser();
-
-    print('User logged out from Provider state.');
   }
 }

@@ -2,80 +2,138 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../models/order_model.dart';
+import '../models/pastry_model.dart';
 
 class OrderService {
-  static const _fetchEndpoint = 'https://api.abtinfi.ir/order/orders';
-  static const _createEndpoint = 'https://api.abtinfi.ir/order/new';
+  static const _baseUrl = 'https://api.abtinfi.ir';
   static const _storage = FlutterSecureStorage();
 
-  /// گرفتن لیست سفارش‌ها
-  static Future<List<OrderModel>> fetchOrders() async {
+  static Future<String> _getToken() async {
     final token = await _storage.read(key: 'jwt_token');
-    if (token == null) throw Exception('No token found');
+    if (token == null) throw Exception('Authentication token not found');
+    return token;
+  }
+
+  /// Fetch all orders
+  static Future<List<OrderModel>> fetchOrders() async {
+    final token = await _getToken();
 
     final response = await http.get(
-      Uri.parse(_fetchEndpoint),
-      headers: {
-        'Authorization': 'Bearer $token',
-        'Content-Type': 'application/json',
-      },
+      Uri.parse('$_baseUrl/order/orders'),
+      headers: _headers(token),
     );
 
     if (response.statusCode == 200) {
       final List<dynamic> data = jsonDecode(response.body);
       return data.map((e) => OrderModel.fromJson(e)).toList();
     } else {
-      throw Exception('Failed to load orders');
+      throw Exception('Failed to fetch orders');
     }
   }
 
-  /// ثبت سفارش جدید
+  /// Fetch a single pastry details
+  static Future<Pastry> fetchPastryDetails(int pastryId) async {
+    final token = await _getToken();
+
+    final response = await http.get(
+      Uri.parse('$_baseUrl/pastries/$pastryId'),
+      headers: _headers(token),
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return Pastry.fromJson(data);
+    } else {
+      throw Exception('Failed to fetch pastry details');
+    }
+  }
+
+  /// Fetch order details + related pastries
+  static Future<Map<String, dynamic>> fetchOrderDetails(int orderId) async {
+    final token = await _getToken();
+
+    final response = await http.get(
+      Uri.parse('$_baseUrl/order/orders/$orderId'),
+      headers: _headers(token),
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      final order = OrderModel.fromJson(data);
+
+      final pastries = await Future.wait(
+        order.items.map((item) => fetchPastryDetails(item.pastryId)),
+      );
+
+      return {
+        'order': order,
+        'pastries': pastries,
+      };
+    } else {
+      throw Exception('Failed to fetch order details');
+    }
+  }
+
+  /// Create a new order
   static Future<void> createOrder(OrderCreateModel order) async {
-    final token = await _storage.read(key: 'jwt_token');
-    if (token == null) throw Exception('لطفاً ابتدا وارد حساب کاربری خود شوید');
+    final token = await _getToken();
 
     try {
       final response = await http.post(
-        Uri.parse(_createEndpoint),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
+        Uri.parse('$_baseUrl/order/new'),
+        headers: _headers(token),
         body: jsonEncode(order.toJson()),
       ).timeout(
         const Duration(seconds: 10),
-        onTimeout: () {
-          throw Exception('زمان اتصال به سرور به پایان رسید. لطفاً دوباره تلاش کنید');
-        },
+        onTimeout: () => throw Exception('Request timed out. Please try again.'),
       );
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        return;
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        throw Exception(_parseErrorMessage(response.body) ?? 'Failed to create order');
       }
-
-      String errorMessage = 'خطا در ثبت سفارش';
-      try {
-        final responseBody = jsonDecode(response.body);
-        if (responseBody != null) {
-          if (responseBody['detail'] != null) {
-            errorMessage = responseBody['detail'];
-          } else if (responseBody['message'] != null) {
-            errorMessage = responseBody['message'];
-          }
-        }
-      } catch (e) {
-        // If JSON parsing fails, use the raw response body
-        errorMessage = response.body;
-      }
-      
-      throw Exception(errorMessage);
-    } on http.ClientException catch (e) {
-      throw Exception('خطا در اتصال به سرور. لطفاً اتصال اینترنت خود را بررسی کنید');
+    } on http.ClientException {
+      throw Exception('Network error. Please check your internet connection.');
     } catch (e) {
-      if (e is Exception) {
-        rethrow;
-      }
-      throw Exception('خطا در ارتباط با سرور. لطفاً دوباره تلاش کنید');
+      throw Exception('Unexpected error. Please try again.');
     }
+  }
+
+  /// Update order status
+  static Future<void> updateOrderStatus(
+      int orderId, {
+        required String status,
+        String? adminMessage,
+      }) async {
+    final token = await _getToken();
+
+    final response = await http.patch(
+      Uri.parse('$_baseUrl/order/orders/$orderId'),
+      headers: _headers(token),
+      body: jsonEncode({
+        'status': status,
+        if (adminMessage != null) 'admin_message': adminMessage,
+      }),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Failed to update order status');
+    }
+  }
+
+  /// Helper: Auth headers
+  static Map<String, String> _headers(String token) => {
+    'Authorization': 'Bearer $token',
+    'Content-Type': 'application/json',
+  };
+
+  /// Helper: Try to parse meaningful error messages
+  static String? _parseErrorMessage(String responseBody) {
+    try {
+      final body = jsonDecode(responseBody);
+      if (body is Map<String, dynamic>) {
+        return body['detail'] ?? body['message'];
+      }
+    } catch (_) {}
+    return null;
   }
 }

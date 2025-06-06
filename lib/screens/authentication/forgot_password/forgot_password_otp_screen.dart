@@ -1,28 +1,11 @@
+import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'dart:convert';
 
 import '../../../widget/app_bar.dart';
+import '../../../utils/otp_tracker.dart';
 import 'change_password_screen.dart';
-
-void _showErrorDialog(BuildContext context, String message) {
-  showDialog(
-    context: context,
-    builder:
-        (ctx) => AlertDialog(
-          title: const Text('Error'),
-          content: Text(message),
-          actions: <Widget>[
-            TextButton(
-              child: const Text('Okay'),
-              onPressed: () {
-                Navigator.of(ctx).pop();
-              },
-            ),
-          ],
-        ),
-  );
-}
 
 class ForgotPasswordEnterEmailScreen extends StatefulWidget {
   const ForgotPasswordEnterEmailScreen({super.key});
@@ -34,115 +17,156 @@ class ForgotPasswordEnterEmailScreen extends StatefulWidget {
 
 class _ForgotPasswordEnterEmailScreenState
     extends State<ForgotPasswordEnterEmailScreen> {
-  final TextEditingController _email = TextEditingController();
-  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final _emailController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
+
   bool _isLoading = false;
+  bool _isResending = false;
+  bool _canResend = false;
+
+  Timer? _timer;
+  int _secondsRemaining = 0;
+
   final String _requestOtpEndpoint = 'https://api.abtinfi.ir/users/request-otp';
 
   @override
   void dispose() {
-    _email.dispose();
+    _timer?.cancel();
+    _emailController.dispose();
     super.dispose();
   }
 
-  Future<void> _requestPasswordResetOtp() async {
-    if (!_formKey.currentState!.validate()) {
+  void _startTimer({int duration = 180}) {
+    _timer?.cancel();
+    setState(() {
+      _secondsRemaining = duration;
+      _canResend = false;
+    });
+
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_secondsRemaining <= 1) {
+        timer.cancel();
+        setState(() {
+          _secondsRemaining = 0;
+          _canResend = true;
+        });
+      } else {
+        setState(() {
+          _secondsRemaining--;
+        });
+      }
+    });
+  }
+
+  Future<void> _requestOtp({bool isResend = false}) async {
+    final email = _emailController.text.trim();
+
+    if (!_formKey.currentState!.validate()) return;
+    if (isResend && !canSendOtp(email)) {
+      _showErrorDialog("You’ve reached the maximum number of OTP requests.");
       return;
     }
 
+    if (_isLoading || _isResending) return;
+
     setState(() {
-      _isLoading = true;
+      isResend ? _isResending = true : _isLoading = true;
     });
 
     try {
       final response = await http.post(
         Uri.parse(_requestOtpEndpoint),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'email': _email.text, 'purpose': 'password_reset'}),
+        body: jsonEncode({'email': email, 'purpose': 'password_reset'}),
       );
 
       if (!mounted) return;
 
       if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        final expiresIn = body['expires_in'] ?? 180;
+
+        increaseOtpCount(email);
+        setOtpExpiry(email, expiresIn);
+        _startTimer(duration: expiresIn);
+
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("OTP sent to your email!")),
+          const SnackBar(content: Text("OTP sent to your email.")),
         );
 
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (context) => ChangePasswordScreen(email: _email.text),
-          ),
-        );
-      } else if (response.statusCode == 400) {
-        final errorBody = jsonDecode(response.body);
-        String errorMessage = 'Failed to request OTP.';
-        if (errorBody != null && errorBody['detail'] != null) {
-          errorMessage = errorBody['detail'];
-          if (errorMessage.contains(
-            "Please wait before requesting a new OTP",
-          )) {
-            _showErrorDialog(context, errorMessage);
-            return;
-          }
+        if (!isResend) {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => ChangePasswordScreen(email: email),
+            ),
+          );
         }
-        _showErrorDialog(context, errorMessage);
       } else {
-        _showErrorDialog(
-          context,
-          'Failed to request OTP. Status code: ${response.statusCode}',
-        );
+        final body = jsonDecode(response.body);
+        final error = body['detail'] ?? 'Failed to send OTP. Try again later.';
+        _showErrorDialog(error);
       }
-    } catch (e) {
-      if (!mounted) return;
-
-      _showErrorDialog(
-        context,
-        'An error occurred. Please check your connection and try again.',
-      );
+    } catch (_) {
+      _showErrorDialog("Connection error. Please try again.");
     } finally {
       setState(() {
         _isLoading = false;
+        _isResending = false;
       });
     }
   }
 
+  void _showErrorDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Error'),
+        content: Text(message),
+        actions: [
+          TextButton(
+            child: const Text('OK'),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        FocusScope.of(context).unfocus();
-      },
-      child: Scaffold(
-        appBar: appBar(context),
-        body: Center(
+    final email = _emailController.text.trim();
+    final canActuallyResend = _canResend && canSendOtp(email) && !_isResending;
+
+    return Scaffold(
+      appBar: appBar(context),
+      body: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24), // Added const
-            physics: const BouncingScrollPhysics(), // Added const
+            padding: const EdgeInsets.all(24),
+            physics: const BouncingScrollPhysics(),
             child: Form(
               key: _formKey,
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
                     'Forgot Password',
                     style: Theme.of(context).textTheme.headlineLarge,
                   ),
-                  const SizedBox(height: 60), // Added const
+                  const SizedBox(height: 60),
                   TextFormField(
-                    controller: _email,
+                    controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
                     decoration: const InputDecoration(
-                      // Added const
                       prefixIcon: Icon(Icons.email),
-                      label: Text('Enter your email'),
+                      labelText: 'Enter your email',
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
                         return "Email can't be empty";
                       }
                       final emailRegex = RegExp(
-                        r'^[\w-\\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                        r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
                       );
                       if (!emailRegex.hasMatch(value)) {
                         return "Please enter a valid email address";
@@ -150,22 +174,43 @@ class _ForgotPasswordEnterEmailScreenState
                       return null;
                     },
                   ),
-                  const SizedBox(height: 24), // Added const
+                  const SizedBox(height: 24),
                   ElevatedButton(
-                    onPressed: _isLoading ? null : _requestPasswordResetOtp,
-                    child:
-                        _isLoading
-                            ? const CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 2,
-                            )
-                            : const Text('Send OTP'),
+                    onPressed: _isLoading ? null : () => _requestOtp(),
+                    child: _isLoading
+                        ? const CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 2,
+                    )
+                        : const Text('Send OTP'),
                   ),
-                  const SizedBox(height: 16), // Added some space
+                  const SizedBox(height: 24),
+                  if (_secondsRemaining > 0)
+                    Text('Resend available in $_secondsRemaining seconds'),
+                  if (_secondsRemaining == 0 && canSendOtp(email))
+                    TextButton(
+                      onPressed: canActuallyResend
+                          ? () => _requestOtp(isResend: true)
+                          : null,
+                      child: _isResending
+                          ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                          : const Text("Didn't receive it? Resend OTP"),
+                    ),
+                  if (!canSendOtp(email))
+                    const Padding(
+                      padding: EdgeInsets.only(top: 8),
+                      child: Text(
+                        'You’ve reached the maximum resend limit.',
+                        style: TextStyle(color: Colors.red),
+                      ),
+                    ),
+                  const SizedBox(height: 24),
                   TextButton(
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                    },
+                    onPressed: () => Navigator.pop(context),
                     child: const Text('Back to Login'),
                   ),
                 ],

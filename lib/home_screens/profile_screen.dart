@@ -1,9 +1,13 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:provider/provider.dart';
+import '../models/user_model.dart';
 import '../providers/user_provider.dart';
 import '../screens/authentication/login/login_screen.dart';
-import '../services/order_service.dart';
-import '../models/order_model.dart';
+import '../screens/authentication/forgot_password/forgot_password_otp_screen.dart';
+import 'orders_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -13,83 +17,184 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
+  final _storage = const FlutterSecureStorage();
   bool _isLoading = false;
-  List<OrderModel> _orders = [];
 
-  Future<void> _loadOrders() async {
+  Future<void> _updateUsername(String newName) async {
     setState(() => _isLoading = true);
     try {
-      final orders = await OrderService.fetchOrders();
-      setState(() => _orders = orders);
+      final token = await _storage.read(key: 'jwt_token');
+      if (token == null) throw Exception('No token found');
+
+      final response = await http.put(
+        Uri.parse('https://api.abtinfi.ir/users/username'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({'name': newName}),
+      );
+
+      if (response.statusCode == 200) {
+        final userProvider = Provider.of<UserProvider>(context, listen: false);
+        final updatedUser = userProvider.user;
+        if (updatedUser != null) {
+          final newUser = UserModel(
+            id: updatedUser.id,
+            email: updatedUser.email,
+            name: newName,
+            isVerified: updatedUser.isVerified,
+            isAdmin: updatedUser.isAdmin,
+          );
+          userProvider.setUser(newUser);
+          await _storage.write(key: 'user', value: jsonEncode(newUser.toJson()));
+        }
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Username updated successfully')),
+        );
+      } else {
+        throw Exception('Failed to update username');
+      }
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('خطا در دریافت سفارش‌ها')),
+        SnackBar(content: Text('Error: ${e.toString()}')),
       );
     } finally {
       setState(() => _isLoading = false);
     }
   }
 
-  Widget _buildProfileInfo(user) {
+  void _showChangeNameDialog() {
+    final nameController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Change Username'),
+        content: TextField(
+          controller: nameController,
+          decoration: const InputDecoration(
+            labelText: 'New Name',
+            hintText: 'Enter your new name',
+          ),
+          onSubmitted: (value) {
+            if (value.isNotEmpty) {
+              _updateUsername(value);
+              Navigator.pop(context);
+            }
+          },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              if (nameController.text.isNotEmpty) {
+                _updateUsername(nameController.text);
+                Navigator.pop(context);
+              }
+            },
+            child: const Text('Confirm'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUserInfo(UserModel user) {
     return Card(
-      elevation: 2,
+      margin: const EdgeInsets.only(bottom: 16),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('👤 نام: ${user.name}', style: const TextStyle(fontSize: 18)),
-            Text('📧 ایمیل: ${user.email}'),
-            Text('🔑 تایید شده: ${user.isVerified ? 'بله' : 'خیر'}'),
-            Text('🧩 نقش: ${user.isAdmin ? 'مدیر' : 'مشتری'}'),
+            const Text('Account Information', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 16),
+            Text('👤 Name: ${user.name}', style: const TextStyle(fontSize: 16)),
+            Text('📧 Email: ${user.email}'),
+            Text('🔑 Verified: ${user.isVerified ? 'Yes' : 'No'}'),
+            Text('🧩 Role: ${user.isAdmin ? 'Admin' : 'Customer'}'),
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              onPressed: _showChangeNameDialog,
+              icon: const Icon(Icons.edit),
+              label: const Text('Change Username'),
+            ),
+            const SizedBox(height: 8),
+            ElevatedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const ForgotPasswordEnterEmailScreen()),
+                );
+              },
+              icon: const Icon(Icons.lock_reset),
+              label: const Text('Change Password'),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildOrderList() {
-    if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    if (_orders.isEmpty) {
-      return const Center(child: Text('هیچ سفارشی یافت نشد.'));
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          '🧾 لیست سفارشات:',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+  Widget _buildAdminPanel() {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 16),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Admin Panel', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 12),
+            const Text(
+              'Welcome to the admin panel. You can manage orders below.',
+              style: TextStyle(fontSize: 16),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton.icon(
+              onPressed: () {
+                Navigator.push(context, MaterialPageRoute(builder: (_) => const OrdersScreen()));
+              },
+              icon: const Icon(Icons.list_alt),
+              label: const Text('Manage Orders'),
+            ),
+          ],
         ),
-        const SizedBox(height: 8),
-        ..._orders.map((order) => Hero(
-          tag: 'order-${order.id}',
-          child: Card(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            elevation: 3,
-            margin: const EdgeInsets.symmetric(vertical: 8),
-            child: ListTile(
-              title: Text('سفارش #${order.id}'),
-              subtitle: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('📍 آدرس: ${order.address}'),
-                  Text('📞 تماس: ${order.phoneNumber}'),
-                  Text('🗓 وضعیت: ${order.status}'),
-                  Text('📝 پیام مدیر: ${order.adminMessage}'),
-                ],
-              ),
-              isThreeLine: true,
-            ),
-          ),
-        )),
-      ],
+      ),
+    );
+  }
+
+  Widget _buildOrderButton() {
+    return ElevatedButton.icon(
+      onPressed: () {
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const OrdersScreen()));
+      },
+      icon: const Icon(Icons.list),
+      label: const Text('View Orders'),
+    );
+  }
+
+  Widget _buildLogoutButton() {
+    return ElevatedButton.icon(
+      onPressed: () async {
+        await Provider.of<UserProvider>(context, listen: false).logout();
+        if (!context.mounted) return;
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const LoginScreen()));
+      },
+      icon: const Icon(Icons.logout),
+      label: const Text('Logout'),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.redAccent,
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+      ),
     );
   }
 
@@ -100,51 +205,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     if (!userProvider.isAuthenticated || user == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('پروفایل')),
-        body: const Center(child: Text('لطفا برای مشاهده پروفایل لاگین کنید.')),
+        appBar: AppBar(title: const Text('Profile')),
+        body: const Center(child: Text('Please log in to view your profile.')),
       );
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('پروفایل کاربری')),
+      appBar: AppBar(title: const Text('User Profile')),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16),
         child: ListView(
           children: [
-            _buildProfileInfo(user),
-            const SizedBox(height: 24),
-            if (!user.isAdmin)
-              ElevatedButton.icon(
-                onPressed: _loadOrders,
-                icon: const Icon(Icons.list),
-                label: const Text('مشاهده لیست سفارشات'),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
-                ),
-              ),
+            if (user.isAdmin) _buildAdminPanel(),
+            _buildUserInfo(user),
+            if (!user.isAdmin) _buildOrderButton(),
             const SizedBox(height: 16),
-            if (!user.isAdmin && (_orders.isNotEmpty || _isLoading))
-              _buildOrderList(),
-            const SizedBox(height: 24),
-            ElevatedButton.icon(
-              onPressed: () async {
-                await userProvider.logout();
-                if (!context.mounted) return;
-                Navigator.of(context).pushReplacement(
-                  MaterialPageRoute(builder: (_) => const LoginScreen()),
-                );
-              },
-              icon: const Icon(Icons.logout),
-              label: const Text('خروج از حساب'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.redAccent,
-                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
-              ),
-            ),
+            _buildLogoutButton(),
           ],
         ),
       ),

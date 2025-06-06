@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 import '../models/pastry_model.dart';
 import '../providers/cart_provider.dart';
+import 'edit_pastry_screen.dart';
 
 class FullScreenImageView extends StatelessWidget {
   final String imageUrl;
@@ -51,13 +55,122 @@ class PastryDetailScreen extends StatefulWidget {
 
 class _PastryDetailScreenState extends State<PastryDetailScreen> {
   int _quantity = 1;
+  bool _isAdmin = false;
+  final _storage = const FlutterSecureStorage();
+
+  @override
+  void initState() {
+    super.initState();
+    _checkAdminStatus();
+  }
+
+  Future<void> _checkAdminStatus() async {
+    try {
+      final userJson = await _storage.read(key: 'user');
+      if (userJson != null) {
+        final userData = jsonDecode(userJson);
+        setState(() {
+          _isAdmin = userData['is_admin'] ?? false;
+        });
+      }
+    } catch (e) {
+      print('Error checking admin status: $e');
+      setState(() {
+        _isAdmin = false;
+      });
+    }
+  }
+
+  Future<void> _editPastry() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => EditPastryScreen(pastry: widget.pastry),
+      ),
+    );
+
+    if (result == true) {
+      // Refresh the pastry data if needed
+      // You might want to implement a refresh mechanism here
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('اطلاعات شیرینی با موفقیت بروزرسانی شد')),
+        );
+      }
+    }
+  }
+
+  Future<void> _deletePastry() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('حذف شیرینی'),
+        content: const Text('آیا از حذف این شیرینی اطمینان دارید؟'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('انصراف'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('حذف'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      final token = await _storage.read(key: 'jwt_token');
+      if (token == null) throw Exception('No token found');
+
+      final response = await http.delete(
+        Uri.parse('https://api.abtinfi.ir/pastries/${widget.pastry.id}'),
+        headers: {
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 204) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('شیرینی با موفقیت حذف شد')),
+        );
+        Navigator.pop(context, true); // Return to previous screen
+      } else {
+        throw Exception('خطا در حذف شیرینی: ${response.body}');
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('خطا: ${e.toString()}')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final pastry = widget.pastry;
 
     return Scaffold(
-      appBar: AppBar(title: Text(pastry.name)),
+      appBar: AppBar(
+        title: Text(pastry.name),
+        actions: _isAdmin
+            ? [
+                IconButton(
+                  icon: const Icon(Icons.edit),
+                  onPressed: _editPastry,
+                ),
+                IconButton(
+                  icon: const Icon(Icons.delete),
+                  onPressed: _deletePastry,
+                  color: Colors.red,
+                ),
+              ]
+            : null,
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -196,7 +309,6 @@ class _PastryDetailScreenState extends State<PastryDetailScreen> {
                     ),
                   );
                 },
-
                 icon: const Icon(Icons.add_shopping_cart),
                 label: Text('افزودن $_quantity عدد به سبد خرید'),
                 style: ElevatedButton.styleFrom(

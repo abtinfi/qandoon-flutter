@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+
 import '../providers/cart_provider.dart';
 import '../models/order_model.dart';
 import '../services/auth_service.dart';
@@ -19,18 +20,21 @@ class _CartScreenState extends State<CartScreen> {
   final _phoneController = TextEditingController();
   bool _isSubmitting = false;
 
+  @override
+  void dispose() {
+    _addressController.dispose();
+    _phoneController.dispose();
+    super.dispose();
+  }
+
   Future<void> _submitOrder(CartProvider cart) async {
     if (_addressController.text.isEmpty || _phoneController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('لطفاً آدرس و شماره تماس را وارد کنید')),
-      );
+      _showSnackBar('Please enter address and phone number.');
       return;
     }
 
     if (cart.items.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('سبد خرید خالی است')),
-      );
+      _showSnackBar('Your cart is empty.');
       return;
     }
 
@@ -40,56 +44,24 @@ class _CartScreenState extends State<CartScreen> {
       items: cart.getOrderItems(),
     );
 
-    if (!mounted) return;
     setState(() => _isSubmitting = true);
 
     try {
       final token = await AuthService.getToken();
       if (token == null) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('لطفاً ابتدا وارد حساب کاربری خود شوید'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        _showSnackBar('Please login to place an order.', isError: true);
         return;
       }
 
       await OrderService.createOrder(order);
-      
-      if (!mounted) return;
       cart.clearCart();
-      
-      // Show success message
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('سفارش با موفقیت ثبت شد'),
-          backgroundColor: Colors.green,
-          duration: Duration(seconds: 2),
-        ),
-      );
 
-      // Navigate back to home screen
-      if (!mounted) return;
-      Navigator.of(context).pushNamedAndRemoveUntil(
-        '/',
-        (route) => false,
-      );
+      _showSnackBar('Order placed successfully.', isSuccess: true);
+
+      Navigator.of(context).pushNamedAndRemoveUntil('/', (_) => false);
     } catch (e) {
-      if (!mounted) return;
-      
-      String errorMessage = 'خطا در ثبت سفارش';
-      if (e is Exception) {
-        errorMessage = e.toString().replaceAll('Exception: ', '');
-      }
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(errorMessage),
-          backgroundColor: Colors.red,
-        ),
-      );
+      final message = e.toString().replaceAll('Exception: ', '');
+      _showSnackBar(message.isNotEmpty ? message : 'Failed to submit order.', isError: true);
     } finally {
       if (mounted) {
         setState(() => _isSubmitting = false);
@@ -97,115 +69,135 @@ class _CartScreenState extends State<CartScreen> {
     }
   }
 
-  @override
-  void dispose() {
-    _addressController.dispose();
-    _phoneController.dispose();
-    super.dispose();
+  void _showSnackBar(String message, {bool isError = false, bool isSuccess = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor:
+        isError ? Colors.red : isSuccess ? Colors.green : null,
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final cart = Provider.of<CartProvider>(context);
+    final cartItems = cart.items.values.toList();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('سبد خرید')),
+      appBar: AppBar(title: const Text('Cart')),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            if (cart.items.isEmpty)
-              const Expanded(child: Center(child: Text('سبد خرید خالی است')))
+            if (cartItems.isEmpty)
+              const Expanded(child: Center(child: Text('Your cart is empty.')))
             else ...[
               Expanded(
                 child: ListView.builder(
-                  itemCount: cart.items.length,
+                  itemCount: cartItems.length,
                   itemBuilder: (context, index) {
-                    final item = cart.items.values.toList()[index];
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      child: InkWell(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => PastryDetailScreen(
-                                pastry: item.pastry,
-                              ),
-                            ),
-                          );
-                        },
-                        child: ListTile(
-                          leading: ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: CachedNetworkImage(
-                              imageUrl: item.pastry.imageUrl,
-                              width: 60,
-                              height: 60,
-                              fit: BoxFit.cover,
-                              placeholder: (context, url) => const Center(
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              ),
-                              errorWidget: (context, url, error) => const Icon(
-                                Icons.broken_image,
-                                size: 40,
-                                color: Colors.grey,
-                              ),
-                            ),
-                          ),
-                          title: Text(
-                            item.pastry.name,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
-                          ),
-                          subtitle: Text(
-                            'قیمت: ${item.pastry.price.toStringAsFixed(0)} تومان',
-                            style: const TextStyle(color: Colors.green),
-                          ),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                '${item.quantity} عدد',
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.delete, color: Colors.red),
-                                onPressed: () => cart.removeFromCart(item.pastry.id),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    );
+                    final item = cartItems[index];
+                    return _buildCartItem(item, cart);
                   },
                 ),
               ),
-              TextField(
-                controller: _addressController,
-                decoration: const InputDecoration(labelText: 'آدرس'),
-              ),
-              TextField(
-                controller: _phoneController,
-                decoration: const InputDecoration(labelText: 'شماره تماس'),
-                keyboardType: TextInputType.phone,
-              ),
-              const SizedBox(height: 12),
-              ElevatedButton(
-                onPressed: _isSubmitting ? null : () => _submitOrder(cart),
-                child: _isSubmitting
-                    ? const CircularProgressIndicator()
-                    : const Text('ثبت سفارش'),
-              )
+              _buildOrderForm(cart),
             ],
           ],
         ),
       ),
     );
   }
+
+  Widget _buildCartItem(cartItem, CartProvider cart) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      elevation: 3,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: CachedNetworkImage(
+                imageUrl: cartItem.pastry.imageUrl,
+                width: 70,
+                height: 70,
+                fit: BoxFit.cover,
+                placeholder: (_, __) => const CircularProgressIndicator(strokeWidth: 2),
+                errorWidget: (_, __, ___) => const Icon(Icons.broken_image, color: Colors.grey),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    cartItem.pastry.name,
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${cartItem.pastry.price.toStringAsFixed(0)} Toman',
+                    style: const TextStyle(fontSize: 14, color: Colors.green),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      const Icon(Icons.numbers, size: 16, color: Colors.orange),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${cartItem.quantity} pcs',
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                    ],
+                  )
+                ],
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.delete_outline, color: Colors.red, size: 26),
+              onPressed: () => cart.removeFromCart(cartItem.pastry.id),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOrderForm(CartProvider cart) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        TextField(
+          controller: _addressController,
+          decoration: const InputDecoration(
+            labelText: 'Address',
+          ),
+        ),
+        const SizedBox(height: 6),
+        TextField(
+          controller: _phoneController,
+          decoration: const InputDecoration(
+            labelText: 'Phone Number',
+          ),
+          keyboardType: TextInputType.phone,
+        ),
+        const SizedBox(height: 10),
+        ElevatedButton(
+          onPressed: _isSubmitting ? null : () => _submitOrder(cart),
+          child: _isSubmitting
+              ? const CircularProgressIndicator(
+            strokeWidth: 2,
+            color: Colors.white,
+          )
+              : const Text('Submit Order'),
+        ),
+      ],
+    );
+  }
+
 }
