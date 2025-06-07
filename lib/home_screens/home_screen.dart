@@ -33,9 +33,9 @@ class _HomeScreenState extends State<HomeScreen> {
         final result = await showLoginRequiredDialog(context);
         if (result == 'login') {
           if (mounted) {
-            Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const LoginScreen()),
-            );
+            Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const LoginScreen()));
           }
         }
         _dialogShown = false;
@@ -50,10 +50,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(
-        index: _selectedIndex,
-        children: _screens,
-      ),
+      body: IndexedStack(index: _selectedIndex, children: _screens),
       bottomNavigationBar: NavigationBar(
         height: 70,
         selectedIndex: _selectedIndex,

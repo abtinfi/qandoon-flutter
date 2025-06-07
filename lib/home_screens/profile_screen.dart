@@ -47,7 +47,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
             isAdmin: updatedUser.isAdmin,
           );
           userProvider.setUser(newUser);
-          await _storage.write(key: 'user', value: jsonEncode(newUser.toJson()));
+          await _storage.write(
+            key: 'user',
+            value: jsonEncode(newUser.toJson()),
+          );
         }
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
@@ -58,9 +61,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: ${e.toString()}')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
     }
   }
 
@@ -69,37 +72,38 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Change Username'),
-        content: TextField(
-          controller: nameController,
-          decoration: const InputDecoration(
-            labelText: 'New Name',
-            hintText: 'Enter your new name',
+      builder:
+          (_) => AlertDialog(
+            title: const Text('Change Username'),
+            content: TextField(
+              controller: nameController,
+              decoration: const InputDecoration(
+                labelText: 'New Name',
+                hintText: 'Enter your new name',
+              ),
+              onSubmitted: (value) {
+                if (value.isNotEmpty) {
+                  _updateUsername(value);
+                  Navigator.pop(context);
+                }
+              },
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () {
+                  if (nameController.text.isNotEmpty) {
+                    _updateUsername(nameController.text);
+                    Navigator.pop(context);
+                  }
+                },
+                child: const Text('Confirm'),
+              ),
+            ],
           ),
-          onSubmitted: (value) {
-            if (value.isNotEmpty) {
-              _updateUsername(value);
-              Navigator.pop(context);
-            }
-          },
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              if (nameController.text.isNotEmpty) {
-                _updateUsername(nameController.text);
-                Navigator.pop(context);
-              }
-            },
-            child: const Text('Confirm'),
-          ),
-        ],
-      ),
     );
   }
 
@@ -112,7 +116,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Account Information', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const Text(
+              'Account Information',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 16),
             Text('👤 Name: ${user.name}', style: const TextStyle(fontSize: 16)),
             Text('📧 Email: ${user.email}'),
@@ -129,7 +136,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const ForgotPasswordEnterEmailScreen()),
+                  MaterialPageRoute(
+                    builder: (_) => const ForgotPasswordEnterEmailScreen(),
+                  ),
                 );
               },
               icon: const Icon(Icons.lock_reset),
@@ -150,7 +159,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Admin Panel', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            const Text(
+              'Admin Panel',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 12),
             const Text(
               'Welcome to the admin panel. You can manage orders below.',
@@ -159,7 +171,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(height: 20),
             ElevatedButton.icon(
               onPressed: () {
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const OrdersScreen()));
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const OrdersScreen()),
+                );
               },
               icon: const Icon(Icons.list_alt),
               label: const Text('Manage Orders'),
@@ -173,7 +188,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildOrderButton() {
     return ElevatedButton.icon(
       onPressed: () {
-        Navigator.push(context, MaterialPageRoute(builder: (_) => const OrdersScreen()));
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const OrdersScreen()),
+        );
       },
       icon: const Icon(Icons.list),
       label: const Text('View Orders'),
@@ -185,7 +203,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       onPressed: () async {
         await Provider.of<UserProvider>(context, listen: false).logout();
         if (!context.mounted) return;
-        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const LoginScreen()));
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const LoginScreen()),
+        );
       },
       icon: const Icon(Icons.logout),
       label: const Text('Logout'),
@@ -207,16 +228,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
         Future.microtask(() async {
           final result = await showLoginRequiredDialog(context);
           if (result == 'login' && context.mounted) {
-            Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const LoginScreen()),
-            );
+            Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const LoginScreen()));
           }
           _dialogShown = false;
         });
       }
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     return Scaffold(

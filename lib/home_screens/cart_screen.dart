@@ -37,9 +37,9 @@ class _CartScreenState extends State<CartScreen> {
         _dialogShown = true;
         final result = await showLoginRequiredDialog(context);
         if (result == 'login' && context.mounted) {
-          Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const LoginScreen()),
-          );
+          Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: (_) => const LoginScreen()));
         }
         _dialogShown = false;
       }
@@ -78,7 +78,10 @@ class _CartScreenState extends State<CartScreen> {
       Navigator.of(context).pushNamedAndRemoveUntil('/', (_) => false);
     } catch (e) {
       final message = e.toString().replaceAll('Exception: ', '');
-      _showSnackBar(message.isNotEmpty ? message : 'Failed to submit order.', isError: true);
+      _showSnackBar(
+        message.isNotEmpty ? message : 'Failed to submit order.',
+        isError: true,
+      );
     } finally {
       if (mounted) {
         setState(() => _isSubmitting = false);
@@ -86,12 +89,20 @@ class _CartScreenState extends State<CartScreen> {
     }
   }
 
-  void _showSnackBar(String message, {bool isError = false, bool isSuccess = false}) {
+  void _showSnackBar(
+    String message, {
+    bool isError = false,
+    bool isSuccess = false,
+  }) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
         backgroundColor:
-        isError ? Colors.red : isSuccess ? Colors.green : null,
+            isError
+                ? Colors.red
+                : isSuccess
+                ? Colors.green
+                : null,
       ),
     );
   }
@@ -143,8 +154,11 @@ class _CartScreenState extends State<CartScreen> {
                 width: 70,
                 height: 70,
                 fit: BoxFit.cover,
-                placeholder: (_, __) => const CircularProgressIndicator(strokeWidth: 2),
-                errorWidget: (_, __, ___) => const Icon(Icons.broken_image, color: Colors.grey),
+                placeholder:
+                    (_, __) => const CircularProgressIndicator(strokeWidth: 2),
+                errorWidget:
+                    (_, __, ___) =>
+                        const Icon(Icons.broken_image, color: Colors.grey),
               ),
             ),
             const SizedBox(width: 12),
@@ -154,7 +168,10 @@ class _CartScreenState extends State<CartScreen> {
                 children: [
                   Text(
                     cartItem.pastry.name,
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -171,12 +188,16 @@ class _CartScreenState extends State<CartScreen> {
                         style: const TextStyle(fontSize: 14),
                       ),
                     ],
-                  )
+                  ),
                 ],
               ),
             ),
             IconButton(
-              icon: const Icon(Icons.delete_outline, color: Colors.red, size: 26),
+              icon: const Icon(
+                Icons.delete_outline,
+                color: Colors.red,
+                size: 26,
+              ),
               onPressed: () => cart.removeFromCart(cartItem.pastry.id),
             ),
           ],
@@ -191,30 +212,26 @@ class _CartScreenState extends State<CartScreen> {
       children: [
         TextField(
           controller: _addressController,
-          decoration: const InputDecoration(
-            labelText: 'Address',
-          ),
+          decoration: const InputDecoration(labelText: 'Address'),
         ),
         const SizedBox(height: 6),
         TextField(
           controller: _phoneController,
-          decoration: const InputDecoration(
-            labelText: 'Phone Number',
-          ),
+          decoration: const InputDecoration(labelText: 'Phone Number'),
           keyboardType: TextInputType.phone,
         ),
         const SizedBox(height: 10),
         ElevatedButton(
           onPressed: _isSubmitting ? null : () => _submitOrder(cart),
-          child: _isSubmitting
-              ? const CircularProgressIndicator(
-            strokeWidth: 2,
-            color: Colors.white,
-          )
-              : const Text('Submit Order'),
+          child:
+              _isSubmitting
+                  ? const CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  )
+                  : const Text('Submit Order'),
         ),
       ],
     );
   }
-
 }
