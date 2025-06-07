@@ -36,16 +36,17 @@ class _SignupScreenState extends State<SignupScreen> {
   void _showErrorDialog(String message) {
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Registration Failed'),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
+      builder:
+          (_) => AlertDialog(
+            title: const Text('Registration Failed'),
+            content: Text(message),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('OK'),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 
@@ -76,10 +77,12 @@ class _SignupScreenState extends State<SignupScreen> {
         final errorMessage = body['detail'] ?? 'Registration failed.';
         _showErrorDialog(errorMessage);
       } else {
-        _showErrorDialog('Unexpected error. Status code: ${response.statusCode}');
+        _showErrorDialog(
+          'Unexpected error. Status code: ${response.statusCode}',
+        );
       }
     } catch (_) {
-      _showErrorDialog('An error occurred. Please check your connection.');
+      _showErrorDialog('A connection error occurred. Try again.');
     } finally {
       setState(() => _isLoading = false);
     }
@@ -99,7 +102,10 @@ class _SignupScreenState extends State<SignupScreen> {
               key: _formKey,
               child: Column(
                 children: [
-                  Text('Sign Up', style: Theme.of(context).textTheme.headlineLarge),
+                  Text(
+                    'Sign Up',
+                    style: Theme.of(context).textTheme.headlineLarge,
+                  ),
                   const SizedBox(height: 48),
 
                   /// Email
@@ -114,9 +120,11 @@ class _SignupScreenState extends State<SignupScreen> {
                       if (value == null || value.trim().isEmpty) {
                         return 'Email is required';
                       }
-                      final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+                      final emailRegex = RegExp(
+                        r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                      );
                       if (!emailRegex.hasMatch(value.trim())) {
-                        return 'Enter a valid email address';
+                        return 'A valid email address must be entered';
                       }
                       return null;
                     },
@@ -151,9 +159,14 @@ class _SignupScreenState extends State<SignupScreen> {
                       labelText: 'Password',
                       suffixIcon: IconButton(
                         icon: Icon(
-                          _visiblePassword ? Icons.visibility : Icons.visibility_off,
+                          _visiblePassword
+                              ? Icons.visibility
+                              : Icons.visibility_off,
                         ),
-                        onPressed: () => setState(() => _visiblePassword = !_visiblePassword),
+                        onPressed:
+                            () => setState(
+                              () => _visiblePassword = !_visiblePassword,
+                            ),
                       ),
                     ),
                     validator: (value) {
@@ -177,14 +190,21 @@ class _SignupScreenState extends State<SignupScreen> {
                       labelText: 'Repeat Password',
                       suffixIcon: IconButton(
                         icon: Icon(
-                          _visibleRepeatPassword ? Icons.visibility : Icons.visibility_off,
+                          _visibleRepeatPassword
+                              ? Icons.visibility
+                              : Icons.visibility_off,
                         ),
-                        onPressed: () => setState(() => _visibleRepeatPassword = !_visibleRepeatPassword),
+                        onPressed:
+                            () => setState(
+                              () =>
+                                  _visibleRepeatPassword =
+                                      !_visibleRepeatPassword,
+                            ),
                       ),
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'Please confirm your password';
+                        return 'Password confirmation must be provided';
                       }
                       if (_password.text != value) {
                         return 'Passwords do not match';
@@ -201,9 +221,13 @@ class _SignupScreenState extends State<SignupScreen> {
                     style: ElevatedButton.styleFrom(
                       minimumSize: const Size.fromHeight(48),
                     ),
-                    child: _isLoading
-                        ? const CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
-                        : const Text('Sign Up'),
+                    child:
+                        _isLoading
+                            ? const CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            )
+                            : const Text('Sign Up'),
                   ),
 
                   const SizedBox(height: 16),

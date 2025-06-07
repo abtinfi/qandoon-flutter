@@ -34,16 +34,17 @@ class _LoginScreenState extends State<LoginScreen> {
   void _showErrorDialog(String message) {
     showDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Login Failed'),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('OK'),
-          )
-        ],
-      ),
+      builder:
+          (_) => AlertDialog(
+            title: const Text('Login Failed'),
+            content: Text(message),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
     );
   }
 
@@ -91,7 +92,9 @@ class _LoginScreenState extends State<LoginScreen> {
         final body = jsonDecode(response.body);
         _showErrorDialog(body['message'] ?? 'Invalid email or password.');
       } else {
-        _showErrorDialog('Unexpected error. Status code: ${response.statusCode}');
+        _showErrorDialog(
+          'Unexpected error. Status code: ${response.statusCode}',
+        );
       }
     } catch (_) {
       if (!mounted) return;
@@ -115,7 +118,10 @@ class _LoginScreenState extends State<LoginScreen> {
               key: _formKey,
               child: Column(
                 children: [
-                  Text('Login', style: Theme.of(context).textTheme.headlineLarge),
+                  Text(
+                    'Login',
+                    style: Theme.of(context).textTheme.headlineLarge,
+                  ),
                   const SizedBox(height: 48),
 
                   /// Email
@@ -130,7 +136,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       if (value == null || value.trim().isEmpty) {
                         return 'Email is required';
                       }
-                      final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+                      final emailRegex = RegExp(
+                        r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                      );
                       if (!emailRegex.hasMatch(value.trim())) {
                         return 'Enter a valid email address';
                       }
@@ -149,13 +157,21 @@ class _LoginScreenState extends State<LoginScreen> {
                       labelText: 'Password',
                       suffixIcon: IconButton(
                         icon: Icon(
-                          _visiblePassword ? Icons.visibility : Icons.visibility_off,
+                          _visiblePassword
+                              ? Icons.visibility
+                              : Icons.visibility_off,
                         ),
-                        onPressed: () => setState(() => _visiblePassword = !_visiblePassword),
+                        onPressed:
+                            () => setState(
+                              () => _visiblePassword = !_visiblePassword,
+                            ),
                       ),
                     ),
-                    validator: (value) =>
-                    (value == null || value.isEmpty) ? 'Password is required' : null,
+                    validator:
+                        (value) =>
+                            (value == null || value.isEmpty)
+                                ? 'Password is required'
+                                : null,
                   ),
 
                   Align(
@@ -163,7 +179,10 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: TextButton(
                       onPressed: () {
                         Navigator.of(context).push(
-                          MaterialPageRoute(builder: (_) => const ForgotPasswordEnterEmailScreen()),
+                          MaterialPageRoute(
+                            builder:
+                                (_) => const ForgotPasswordEnterEmailScreen(),
+                          ),
                         );
                       },
                       child: const Text('Forgot Password?'),
@@ -177,9 +196,13 @@ class _LoginScreenState extends State<LoginScreen> {
                     style: ElevatedButton.styleFrom(
                       minimumSize: const Size.fromHeight(48),
                     ),
-                    child: _isLoading
-                        ? const CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
-                        : const Text('Login'),
+                    child:
+                        _isLoading
+                            ? const CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            )
+                            : const Text('Login'),
                   ),
 
                   const SizedBox(height: 24),

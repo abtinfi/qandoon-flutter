@@ -18,7 +18,7 @@ void _showErrorDialog(BuildContext context, String message) {
           content: Text(message),
           actions: <Widget>[
             TextButton(
-              child: const Text('Okay'),
+              child: const Text('OK'),
               onPressed: () {
                 Navigator.of(ctx).pop();
               },
@@ -150,7 +150,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
         }
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("New OTP sent successfully!")),
+          const SnackBar(content: Text("A new OTP must be sent successfully!")),
         );
 
         increaseOtpCount(widget.email);
@@ -198,7 +198,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     }
 
     if (_otpController.text.length != 5) {
-      _showErrorDialog(context, "Please enter the OTP code first.");
+      _showErrorDialog(context, "The OTP code must be entered first.");
       return;
     }
 
@@ -223,7 +223,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
       if (response.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text("Password reset successfully! Please log in."),
+            content: Text("Password must be reset successfully. Login is required."),
           ),
         );
 
@@ -351,7 +351,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                     } else {
                       _showErrorDialog(
                         context,
-                        "Please enter the OTP code first.",
+                        "The OTP code must be entered first.",
                       );
                     }
                   },
@@ -442,9 +442,9 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return "Enter a new password";
+                          return "A new password must be entered";
                         } else if (value.length < 6) {
-                          return "Password must be at least 6 characters";
+                          return "The password must be at least 6 characters";
                         }
                         return null;
                       },
@@ -472,10 +472,10 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return "Repeat your password";
+                          return "The password must be repeated";
                         }
                         if (value != _newPasswordController.text) {
-                          return "Passwords do not match";
+                          return "Passwords must match";
                         }
                         return null;
                       },

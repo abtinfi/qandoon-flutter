@@ -36,7 +36,7 @@ class _AddPastryScreenState extends State<AddPastryScreen> {
   Future<void> _submitForm() async {
     if (!_formKey.currentState!.validate() || _imageFile == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill all fields and select an image.')),
+        const SnackBar(content: Text('All fields must be filled and an image must be selected.')),
       );
       return;
     }
@@ -73,7 +73,7 @@ class _AddPastryScreenState extends State<AddPastryScreen> {
       if (response.statusCode == 201) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Pastry added successfully.')),
+          const SnackBar(content: Text('Pastry must be added successfully.')),
         );
         Navigator.pop(context, true);
       } else {
@@ -82,7 +82,7 @@ class _AddPastryScreenState extends State<AddPastryScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: ${e.toString()}')),
+        SnackBar(content: Text('An error occurred: 4{e.toString()}')),
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -140,7 +140,7 @@ class _AddPastryScreenState extends State<AddPastryScreen> {
               controller: _nameController,
               label: 'Pastry Name',
               icon: Icons.cake_outlined,
-              validatorMessage: 'Please enter the name',
+              validatorMessage: 'The name must be entered',
             ),
             const SizedBox(height: 16),
             _buildTextField(
@@ -148,7 +148,7 @@ class _AddPastryScreenState extends State<AddPastryScreen> {
               label: 'Description',
               icon: Icons.description_outlined,
               maxLines: 3,
-              validatorMessage: 'Please enter a description',
+              validatorMessage: 'A description must be entered',
             ),
             const SizedBox(height: 16),
             _buildTextField(
@@ -156,7 +156,7 @@ class _AddPastryScreenState extends State<AddPastryScreen> {
               label: 'Price (Toman)',
               icon: Icons.attach_money,
               inputType: TextInputType.number,
-              validatorMessage: 'Enter a valid price',
+              validatorMessage: 'A valid price must be entered',
             ),
             const SizedBox(height: 16),
             _buildTextField(
@@ -164,7 +164,7 @@ class _AddPastryScreenState extends State<AddPastryScreen> {
               label: 'Stock',
               icon: Icons.inventory_2_outlined,
               inputType: TextInputType.number,
-              validatorMessage: 'Enter a valid stock number',
+              validatorMessage: 'A valid stock number must be entered',
             ),
             const SizedBox(height: 24),
             SizedBox(
@@ -208,7 +208,7 @@ class _AddPastryScreenState extends State<AddPastryScreen> {
       validator: (value) {
         if (value == null || value.isEmpty) return validatorMessage;
         if (inputType == TextInputType.number && double.tryParse(value) == null) {
-          return 'Enter a valid number';
+          return 'A valid number must be entered';
         }
         return null;
       },

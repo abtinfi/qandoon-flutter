@@ -28,13 +28,15 @@ class FullScreenImageView extends StatelessWidget {
           child: CachedNetworkImage(
             imageUrl: imageUrl,
             fit: BoxFit.contain,
-            placeholder: (context, url) =>
-            const CircularProgressIndicator(color: Colors.white),
-            errorWidget: (context, url, error) => const Icon(
-              Icons.broken_image,
-              color: Colors.grey,
-              size: 60,
-            ),
+            placeholder:
+                (context, url) =>
+                    const CircularProgressIndicator(color: Colors.white),
+            errorWidget:
+                (context, url, error) => const Icon(
+                  Icons.broken_image,
+                  color: Colors.grey,
+                  size: 60,
+                ),
           ),
         ),
       ),
@@ -93,18 +95,22 @@ class _PastryDetailScreenState extends State<PastryDetailScreen> {
   Future<void> _deletePastry() async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Delete Pastry'),
-        content: const Text('Are you sure you want to delete this pastry?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Delete'),
+      builder:
+          (_) => AlertDialog(
+            title: const Text('Delete Pastry'),
+            content: const Text('Are you sure you want to delete this pastry?'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                style: TextButton.styleFrom(foregroundColor: Colors.red),
+                child: const Text('Delete'),
+              ),
+            ],
           ),
-        ],
-      ),
     );
 
     if (confirmed != true) return;
@@ -119,9 +125,9 @@ class _PastryDetailScreenState extends State<PastryDetailScreen> {
       );
 
       if (res.statusCode == 204 && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Pastry deleted.')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Pastry deleted.')));
         Navigator.pop(context, true);
       } else {
         throw Exception(res.body);
@@ -129,7 +135,7 @@ class _PastryDetailScreenState extends State<PastryDetailScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: ${e.toString()}')),
+        SnackBar(content: Text('An error occurred: 4{e.toString()}')),
       );
     }
   }
@@ -141,48 +147,70 @@ class _PastryDetailScreenState extends State<PastryDetailScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(pastry.name),
-        actions: _isAdmin
-            ? [
-          IconButton(icon: const Icon(Icons.edit), onPressed: _editPastry),
-          IconButton(icon: const Icon(Icons.delete), onPressed: _deletePastry),
-        ]
-            : null,
+        actions:
+            _isAdmin
+                ? [
+                  IconButton(
+                    icon: const Icon(Icons.edit),
+                    onPressed: _editPastry,
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.delete),
+                    onPressed: _deletePastry,
+                  ),
+                ]
+                : null,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Hero(
-            tag: pastry.imageUrl,
-            child: GestureDetector(
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => FullScreenImageView(imageUrl: pastry.imageUrl),
-                ),
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: CachedNetworkImage(
-                  imageUrl: pastry.imageUrl,
-                  fit: BoxFit.cover,
-                  height: 250,
-                  width: double.infinity,
-                  placeholder: (_, __) => const Center(child: CircularProgressIndicator()),
-                  errorWidget: (_, __, ___) =>
-                  const Icon(Icons.broken_image, size: 60, color: Colors.grey),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Hero(
+              tag: pastry.imageUrl,
+              child: GestureDetector(
+                onTap:
+                    () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder:
+                            (_) =>
+                                FullScreenImageView(imageUrl: pastry.imageUrl),
+                      ),
+                    ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: CachedNetworkImage(
+                    imageUrl: pastry.imageUrl,
+                    fit: BoxFit.cover,
+                    height: 250,
+                    width: double.infinity,
+                    placeholder:
+                        (_, __) =>
+                            const Center(child: CircularProgressIndicator()),
+                    errorWidget:
+                        (_, __, ___) => const Icon(
+                          Icons.broken_image,
+                          size: 60,
+                          color: Colors.grey,
+                        ),
+                  ),
                 ),
               ),
             ),
-          ),
-          const SizedBox(height: 24),
-          Text(pastry.name, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 12),
-          Text(
-            pastry.description,
-            style: const TextStyle(fontSize: 16, height: 1.5),
-          ),
-          const SizedBox(height: 100),
-        ]),
+            const SizedBox(height: 24),
+            Text(
+              pastry.name,
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              pastry.description,
+              style: const TextStyle(fontSize: 16, height: 1.5),
+            ),
+            const SizedBox(height: 100),
+          ],
+        ),
       ),
       bottomNavigationBar: Container(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
@@ -193,47 +221,64 @@ class _PastryDetailScreenState extends State<PastryDetailScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-              Text(
-                'Price: ${pastry.price.toStringAsFixed(0)} Toman',
-                style: const TextStyle(fontSize: 18, color: Colors.green, fontWeight: FontWeight.w600),
-              ),
-              Text(
-                'Stock: ${pastry.stock}',
-                style: const TextStyle(fontSize: 16, color: Colors.orange),
-              ),
-            ]),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Price: ${pastry.price.toStringAsFixed(0)} Toman',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    color: Colors.green,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                Text(
+                  'Stock: ${pastry.stock}',
+                  style: const TextStyle(fontSize: 16, color: Colors.orange),
+                ),
+              ],
+            ),
             const SizedBox(height: 12),
-            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-              const Text('Quantity:', style: TextStyle(fontSize: 16)),
-              Row(children: [
-                IconButton(
-                  onPressed: () {
-                    if (_quantity > 1) setState(() => _quantity--);
-                  },
-                  icon: const Icon(Icons.remove_circle_outline),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Quantity:', style: TextStyle(fontSize: 16)),
+                Row(
+                  children: [
+                    IconButton(
+                      onPressed: () {
+                        if (_quantity > 1) setState(() => _quantity--);
+                      },
+                      icon: const Icon(Icons.remove_circle_outline),
+                    ),
+                    Text('$_quantity', style: const TextStyle(fontSize: 18)),
+                    IconButton(
+                      onPressed: () {
+                        if (_quantity < pastry.stock)
+                          setState(() => _quantity++);
+                      },
+                      icon: const Icon(Icons.add_circle_outline),
+                    ),
+                  ],
                 ),
-                Text('$_quantity', style: const TextStyle(fontSize: 18)),
-                IconButton(
-                  onPressed: () {
-                    if (_quantity < pastry.stock) setState(() => _quantity++);
-                  },
-                  icon: const Icon(Icons.add_circle_outline),
-                ),
-              ]),
-            ]),
+              ],
+            ),
             const SizedBox(height: 12),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
                 onPressed: () {
-                  final cart = Provider.of<CartProvider>(context, listen: false);
+                  final cart = Provider.of<CartProvider>(
+                    context,
+                    listen: false,
+                  );
                   cart.addToCart(pastry, _quantity);
 
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(
-                          '$_quantity × "${pastry.name}" added to cart.'),
+                        '$_quantity × "${pastry.name}" added to cart.',
+                      ),
                     ),
                   );
                 },

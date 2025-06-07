@@ -86,7 +86,7 @@ class _SignupOTPScreenState extends State<SignupOTPScreen> {
         final expiresIn = responseBody['expires_in'] ?? 180;
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('A new OTP has been sent to your email.')),
+          const SnackBar(content: Text('A new OTP must be sent to your email.')),
         );
 
         _startOtpFlow(expiresIn: expiresIn);
@@ -128,7 +128,7 @@ class _SignupOTPScreenState extends State<SignupOTPScreen> {
             MaterialPageRoute(builder: (_) => const AuthCheckScreen()),
           );
         } else {
-          _showErrorDialog('Invalid response from server.');
+          _showErrorDialog('A valid response must be received from the server.');
         }
       } else if (response.statusCode == 400) {
         final body = jsonDecode(response.body);
@@ -136,10 +136,10 @@ class _SignupOTPScreenState extends State<SignupOTPScreen> {
         _showErrorDialog(error);
         _otpController.clear();
       } else {
-        _showErrorDialog('Unexpected error. Code: ${response.statusCode}');
+        _showErrorDialog('An unexpected error occurred. Code: 4{response.statusCode}');
       }
     } catch (_) {
-      _showErrorDialog('Network error. Please try again.');
+      _showErrorDialog('A network error occurred. Try again.');
     } finally {
       setState(() => _isLoadingVerify = false);
     }
@@ -237,8 +237,8 @@ class _SignupOTPScreenState extends State<SignupOTPScreen> {
                   )
                       : Text(
                     canActuallyResend
-                        ? 'Resend OTP'
-                        : 'Resend in $_secondsRemaining seconds',
+                        ? 'OTP must be resent'
+                        : 'Resend available in $_secondsRemaining seconds',
                   ),
                 ),
               ],

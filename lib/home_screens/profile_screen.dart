@@ -61,9 +61,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('An error occurred: 4{e.toString()}')),
+      );
     }
   }
 
@@ -79,7 +79,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               controller: nameController,
               decoration: const InputDecoration(
                 labelText: 'New Name',
-                hintText: 'Enter your new name',
+                hintText: 'A new name must be entered',
               ),
               onSubmitted: (value) {
                 if (value.isNotEmpty) {

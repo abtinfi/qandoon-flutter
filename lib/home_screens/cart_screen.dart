@@ -46,12 +46,12 @@ class _CartScreenState extends State<CartScreen> {
       return;
     }
     if (_addressController.text.isEmpty || _phoneController.text.isEmpty) {
-      _showSnackBar('Please enter address and phone number.');
+      _showSnackBar('Address and phone number must be entered.');
       return;
     }
 
     if (cart.items.isEmpty) {
-      _showSnackBar('Your cart is empty.');
+      _showSnackBar('The cart must not be empty.');
       return;
     }
 
@@ -66,20 +66,20 @@ class _CartScreenState extends State<CartScreen> {
     try {
       final token = await AuthService.getToken();
       if (token == null) {
-        _showSnackBar('Please login to place an order.', isError: true);
+        _showSnackBar('Login must be performed to place an order.', isError: true);
         return;
       }
 
       await OrderService.createOrder(order);
       cart.clearCart();
 
-      _showSnackBar('Order placed successfully.', isSuccess: true);
+      _showSnackBar('The order must be placed successfully.', isSuccess: true);
 
       Navigator.of(context).pushNamedAndRemoveUntil('/', (_) => false);
     } catch (e) {
       final message = e.toString().replaceAll('Exception: ', '');
       _showSnackBar(
-        message.isNotEmpty ? message : 'Failed to submit order.',
+        message.isNotEmpty ? message : 'Order submission must not fail.',
         isError: true,
       );
     } finally {
@@ -119,7 +119,7 @@ class _CartScreenState extends State<CartScreen> {
         child: Column(
           children: [
             if (cartItems.isEmpty)
-              const Expanded(child: Center(child: Text('Your cart is empty.')))
+              const Expanded(child: Center(child: Text('The cart must not be empty.')))
             else ...[
               Expanded(
                 child: ListView.builder(
