@@ -60,7 +60,7 @@ class _ShopScreenState extends State<ShopScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Shop')),
+      appBar: AppBar(title: Text(_isAdmin ? 'Admin Panel' : 'Shop'),),
       body: FutureBuilder<List<Pastry>>(
         future: _pastriesFuture,
         builder: (context, snapshot) {
