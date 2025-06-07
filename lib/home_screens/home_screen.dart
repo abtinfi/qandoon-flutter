@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:bakery/widget/app_bar.dart';
 import 'package:bakery/home_screens/cart_screen.dart';
 import 'package:bakery/home_screens/shop_screen.dart';
 import 'package:bakery/home_screens/profile_screen.dart';
+import 'package:provider/provider.dart';
+import '../providers/user_provider.dart';
+import '../widget/login_required_dialog.dart';
+import '../screens/authentication/login/login_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -13,6 +16,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 1;
+  bool _dialogShown = false;
 
   final List<Widget> _screens = const [
     CartScreen(),
@@ -20,7 +24,24 @@ class _HomeScreenState extends State<HomeScreen> {
     ProfileScreen(),
   ];
 
-  void _onItemTapped(int index) {
+  void _onItemTapped(int index) async {
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    // If user is not authenticated and tries to access Cart or Profile
+    if ((index == 0 || index == 2) && !userProvider.isAuthenticated) {
+      if (!_dialogShown) {
+        _dialogShown = true;
+        final result = await showLoginRequiredDialog(context);
+        if (result == 'login') {
+          if (mounted) {
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const LoginScreen()),
+            );
+          }
+        }
+        _dialogShown = false;
+      }
+      return;
+    }
     setState(() {
       _selectedIndex = index;
     });

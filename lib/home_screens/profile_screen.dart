@@ -3,10 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:provider/provider.dart';
-import '../models/user_model.dart';
 import '../providers/user_provider.dart';
+import '../widget/login_required_dialog.dart';
 import '../screens/authentication/login/login_screen.dart';
 import '../screens/authentication/forgot_password/forgot_password_otp_screen.dart';
+import '../models/user_model.dart';
 import 'orders_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -18,10 +19,9 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   final _storage = const FlutterSecureStorage();
-  bool _isLoading = false;
+  bool _dialogShown = false;
 
   Future<void> _updateUsername(String newName) async {
-    setState(() => _isLoading = true);
     try {
       final token = await _storage.read(key: 'jwt_token');
       if (token == null) throw Exception('No token found');
@@ -61,8 +61,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error: ${e.toString()}')),
       );
-    } finally {
-      setState(() => _isLoading = false);
     }
   }
 
@@ -204,9 +202,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final user = userProvider.user;
 
     if (!userProvider.isAuthenticated || user == null) {
-      return Scaffold(
-        appBar: AppBar(title: const Text('Profile')),
-        body: const Center(child: Text('Please log in to view your profile.')),
+      if (!_dialogShown) {
+        _dialogShown = true;
+        Future.microtask(() async {
+          final result = await showLoginRequiredDialog(context);
+          if (result == 'login' && context.mounted) {
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const LoginScreen()),
+            );
+          }
+          _dialogShown = false;
+        });
+      }
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
       );
     }
 
@@ -218,7 +227,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           children: [
             if (user.isAdmin) _buildAdminPanel(),
             _buildUserInfo(user),
-            if (!user.isAdmin) _buildOrderButton(),
+            if (!(user.isAdmin)) _buildOrderButton(),
             const SizedBox(height: 16),
             _buildLogoutButton(),
           ],

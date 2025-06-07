@@ -27,7 +27,9 @@ class _AuthCheckScreenState extends State<AuthCheckScreen> {
     final token = await AuthService.getToken();
 
     if (token == null) {
-      return _navigateToLogin();
+      // Go to HomeScreen (shop) even if not logged in
+      _navigateToHome();
+      return;
     }
 
     try {
@@ -38,11 +40,11 @@ class _AuthCheckScreenState extends State<AuthCheckScreen> {
     } on AuthException catch (_) {
       await AuthService.clearAuthData();
       userProvider.clearUser();
-      _navigateToLogin();
+      _navigateToHome();
     } catch (_) {
       await AuthService.clearAuthData();
       userProvider.clearUser();
-      _navigateToLogin();
+      _navigateToHome();
     }
   }
 

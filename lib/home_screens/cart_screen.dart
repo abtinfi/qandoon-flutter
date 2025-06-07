@@ -6,7 +6,9 @@ import '../providers/cart_provider.dart';
 import '../models/order_model.dart';
 import '../services/auth_service.dart';
 import '../services/order_service.dart';
-import 'detail_screen.dart';
+import '../providers/user_provider.dart';
+import '../widget/login_required_dialog.dart';
+import '../screens/authentication/login/login_screen.dart';
 
 class CartScreen extends StatefulWidget {
   const CartScreen({super.key});
@@ -19,6 +21,7 @@ class _CartScreenState extends State<CartScreen> {
   final _addressController = TextEditingController();
   final _phoneController = TextEditingController();
   bool _isSubmitting = false;
+  bool _dialogShown = false;
 
   @override
   void dispose() {
@@ -28,6 +31,20 @@ class _CartScreenState extends State<CartScreen> {
   }
 
   Future<void> _submitOrder(CartProvider cart) async {
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    if (!userProvider.isAuthenticated) {
+      if (!_dialogShown) {
+        _dialogShown = true;
+        final result = await showLoginRequiredDialog(context);
+        if (result == 'login' && context.mounted) {
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const LoginScreen()),
+          );
+        }
+        _dialogShown = false;
+      }
+      return;
+    }
     if (_addressController.text.isEmpty || _phoneController.text.isEmpty) {
       _showSnackBar('Please enter address and phone number.');
       return;
